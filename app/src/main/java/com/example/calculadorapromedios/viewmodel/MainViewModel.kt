@@ -9,20 +9,20 @@ class MainViewModel : ViewModel() {
 
     private val repository = FakeRepository()
 
-    private val _promedio = MutableLiveData<Double>()
+    private val _promedio = MutableLiveData<Double>(0.0)
     val promedio: LiveData<Double> get() = _promedio
 
-    private val _promedioRedondeado = MutableLiveData<Double>()
-    val promedioRedondeado: LiveData<Double> get() = _promedioRedondeado
+    private val _promedioRedondeado = MutableLiveData<Double?>(null)
+    val promedioRedondeado: LiveData<Double?> get() = _promedioRedondeado
 
-    private val _estado = MutableLiveData<String>()
+    private val _estado = MutableLiveData<String>("Ingresa las calificaciones")
     val estado: LiveData<String> get() = _estado
 
-    private val _guardarMensaje = MutableLiveData<String>()
-    val guardarMensaje: LiveData<String> get() = _guardarMensaje
+    private val _guardarMensaje = MutableLiveData<String?>(null)
+    val guardarMensaje: LiveData<String?> get() = _guardarMensaje
 
-    private val _errorValidacion = MutableLiveData<String>()
-    val errorValidacion: LiveData<String> get() = _errorValidacion
+    private val _errorValidacion = MutableLiveData<String?>(null)
+    val errorValidacion: LiveData<String?> get() = _errorValidacion
 
     fun calcularPromedio(n1: Double, n2: Double, n3: Double) {
         // Validar que las calificaciones estén entre 0 y 20
@@ -43,7 +43,7 @@ class MainViewModel : ViewModel() {
     }
 
     fun redondearPromedio() {
-        val promedioActual = _promedio.value ?: return
+        val promedioActual = _promedio.value ?: 0.0
         val redondeado = Math.round(promedioActual * 100.0) / 100.0
         _promedioRedondeado.value = redondeado
     }
@@ -52,6 +52,7 @@ class MainViewModel : ViewModel() {
         _promedio.value = 0.0
         _promedioRedondeado.value = null
         _estado.value = "Ingresa las calificaciones"
+        _guardarMensaje.value = null
         _errorValidacion.value = null
     }
 

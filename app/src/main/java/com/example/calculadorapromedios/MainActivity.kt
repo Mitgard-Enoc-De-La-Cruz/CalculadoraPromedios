@@ -32,8 +32,10 @@ class MainActivity : AppCompatActivity() {
         })
 
         viewModel.promedioRedondeado.observe(this, Observer { redondeado ->
-            redondeado?.let {
-                binding.tvRedondeado.text = "Redondeado: ${String.format("%.2f", it)}"
+            if (redondeado != null) {
+                binding.tvRedondeado.text = "Redondeado: ${String.format("%.2f", redondeado)}"
+            } else {
+                binding.tvRedondeado.text = ""
             }
         })
 
@@ -43,7 +45,9 @@ class MainActivity : AppCompatActivity() {
         })
 
         viewModel.guardarMensaje.observe(this, Observer { message ->
-            Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+            message?.let {
+                Toast.makeText(this, it, Toast.LENGTH_SHORT).show()
+            }
         })
 
         viewModel.errorValidacion.observe(this, Observer { error ->

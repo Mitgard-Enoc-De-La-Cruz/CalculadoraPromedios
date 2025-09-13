@@ -4,6 +4,8 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.example.calculadorapromedios.viewmodel.data.FakeRepository
+import java.math.BigDecimal
+import java.math.RoundingMode
 
 class MainViewModel : ViewModel() {
 
@@ -24,6 +26,9 @@ class MainViewModel : ViewModel() {
     private val _errorValidacion = MutableLiveData<String?>(null)
     val errorValidacion: LiveData<String?> get() = _errorValidacion
 
+    private val _redondeoMensaje = MutableLiveData<String?>(null)
+    val redondeoMensaje: LiveData<String?> get() = _redondeoMensaje
+
     fun calcularPromedio(n1: Double, n2: Double, n3: Double) {
         // Validar que las calificaciones estén entre 0 y 20
         val calificaciones = listOf(n1, n2, n3)
@@ -40,12 +45,31 @@ class MainViewModel : ViewModel() {
         _estado.value = determinarEstado(result)
         _guardarMensaje.value = repository.guardarPromedio(result)
         _errorValidacion.value = null
+        _redondeoMensaje.value = null
     }
 
     fun redondearPromedio() {
         val promedioActual = _promedio.value ?: 0.0
-        val redondeado = Math.round(promedioActual * 100.0) / 100.0
+
+        if (promedioActual == 0.0) {
+            _redondeoMensaje.value = "Primero calcula un promedio"
+            return
+        }
+
+        val redondeado = redondearADecimal(promedioActual, 1)
         _promedioRedondeado.value = redondeado
+
+        // Mensaje informativo sobre el redondeo
+        val mensaje = when {
+            redondeado > promedioActual -> "Redondeado hacia arriba: ${String.format("%.1f", redondeado)}"
+            redondeado < promedioActual -> "Redondeado hacia abajo: ${String.format("%.1f", redondeado)}"
+            else -> "Sin cambio en redondeo: ${String.format("%.1f", redondeado)}"
+        }
+        _redondeoMensaje.value = mensaje
+    }
+
+    private fun redondearADecimal(valor: Double, decimales: Int): Double {
+        return BigDecimal(valor).setScale(decimales, RoundingMode.HALF_UP).toDouble()
     }
 
     fun limpiarResultados() {
@@ -54,6 +78,7 @@ class MainViewModel : ViewModel() {
         _estado.value = "Ingresa las calificaciones"
         _guardarMensaje.value = null
         _errorValidacion.value = null
+        _redondeoMensaje.value = null
     }
 
     private fun determinarEstado(promedio: Double): String {
@@ -71,6 +96,22 @@ class MainViewModel : ViewModel() {
             valor in 0.0..20.0
         } catch (e: NumberFormatException) {
             false
+        }
+    }
+
+    fun obtenerDetalleRedondeo(): String {
+        val promedioActual = _promedio.value ?: 0.0
+        val redondeado = _promedioRedondeado.value
+
+        if (redondeado == null || promedioActual == 0.0) {
+            return "No se ha realizado redondeo"
+        }
+
+        val diferencia = redondeado - promedioActual
+        return when {
+            diferencia > 0 -> "Redondeado hacia arriba (+${String.format("%.2f", diferencia)})"
+            diferencia < 0 -> "Redondeado hacia abajo (${String.format("%.2f", diferencia)})"
+            else -> "Sin cambio en redondeo"
         }
     }
 }

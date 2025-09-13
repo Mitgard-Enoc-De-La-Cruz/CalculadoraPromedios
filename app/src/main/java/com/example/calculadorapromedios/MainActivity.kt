@@ -10,6 +10,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Observer
 import com.example.calculadorapromedios.databinding.ActivityMainBinding
 import com.example.calculadorapromedios.viewmodel.MainViewModel
+import com.google.android.material.textfield.TextInputLayout
 
 class MainActivity : AppCompatActivity() {
 
@@ -33,7 +34,7 @@ class MainActivity : AppCompatActivity() {
 
         viewModel.promedioRedondeado.observe(this, Observer { redondeado ->
             if (redondeado != null) {
-                binding.tvRedondeado.text = "Redondeado: ${String.format("%.2f", redondeado)}"
+                binding.tvRedondeado.text = "Redondeado: ${String.format("%.1f", redondeado)}"
             } else {
                 binding.tvRedondeado.text = ""
             }
@@ -52,7 +53,14 @@ class MainActivity : AppCompatActivity() {
 
         viewModel.errorValidacion.observe(this, Observer { error ->
             error?.let {
+                mostrarErrorEnEditTexts(it)
                 Toast.makeText(this, it, Toast.LENGTH_SHORT).show()
+            }
+        })
+
+        viewModel.redondeoMensaje.observe(this, Observer { mensaje ->
+            mensaje?.let {
+                Toast.makeText(this, it, Toast.LENGTH_LONG).show()
             }
         })
     }
@@ -63,14 +71,31 @@ class MainActivity : AppCompatActivity() {
                 val n1 = binding.etCalificacion1.text.toString().toDoubleOrNull() ?: 0.0
                 val n2 = binding.etCalificacion2.text.toString().toDoubleOrNull() ?: 0.0
                 val n3 = binding.etCalificacion3.text.toString().toDoubleOrNull() ?: 0.0
+
+                // Validar que al menos un campo tenga valor
+                if (n1 == 0.0 && n2 == 0.0 && n3 == 0.0) {
+                    Toast.makeText(this, "Ingresa al menos una calificación", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+
                 viewModel.calcularPromedio(n1, n2, n3)
             } catch (e: NumberFormatException) {
                 Toast.makeText(this, "Por favor ingresa números válidos", Toast.LENGTH_SHORT).show()
             }
         }
 
+        binding.btnGuardar.setOnClickListener {
+            binding.btnCalcular.performClick()
+        }
+
         binding.btnRedondear.setOnClickListener {
             viewModel.redondearPromedio()
+
+            // Mostrar detalles del redondeo
+            val detalle = viewModel.obtenerDetalleRedondeo()
+            if (detalle != "No se ha realizado redondeo") {
+                binding.tvRedondeado.text = "${binding.tvRedondeado.text}\n$detalle"
+            }
         }
 
         binding.btnLimpiar.setOnClickListener {
@@ -79,24 +104,27 @@ class MainActivity : AppCompatActivity() {
             binding.etCalificacion3.text?.clear()
             viewModel.limpiarResultados()
             binding.tvRedondeado.text = ""
+            limpiarErrores()
         }
     }
 
     private fun setupValidaciones() {
         val editTexts = listOf(binding.etCalificacion1, binding.etCalificacion2, binding.etCalificacion3)
+        val textInputLayouts = listOf(binding.tilCalificacion1, binding.tilCalificacion2, binding.tilCalificacion3)
 
-        editTexts.forEach { editText ->
+        editTexts.forEachIndexed { index, editText ->
             editText.addTextChangedListener(object : TextWatcher {
                 override fun afterTextChanged(s: Editable?) {
                     val texto = s.toString()
                     if (texto.isNotEmpty()) {
                         val esValido = viewModel.validarCalificacion(texto)
-                        // Mostrar error visualmente cambiando el fondo
                         if (!esValido) {
-                            editText.setBackgroundColor(ContextCompat.getColor(this@MainActivity, android.R.color.holo_red_light))
+                            textInputLayouts[index].error = "Debe ser entre 0 y 20"
                         } else {
-                            editText.setBackgroundColor(ContextCompat.getColor(this@MainActivity, android.R.color.transparent))
+                            textInputLayouts[index].error = null
                         }
+                    } else {
+                        textInputLayouts[index].error = null
                     }
                 }
 
@@ -114,5 +142,17 @@ class MainActivity : AppCompatActivity() {
             else -> android.R.color.holo_red_dark
         }
         binding.tvEstado.setTextColor(ContextCompat.getColor(this, colorRes))
+    }
+
+    private fun mostrarErrorEnEditTexts(mensaje: String) {
+        listOf(binding.tilCalificacion1, binding.tilCalificacion2, binding.tilCalificacion3).forEach {
+            it.error = mensaje
+        }
+    }
+
+    private fun limpiarErrores() {
+        listOf(binding.tilCalificacion1, binding.tilCalificacion2, binding.tilCalificacion3).forEach {
+            it.error = null
+        }
     }
 }
